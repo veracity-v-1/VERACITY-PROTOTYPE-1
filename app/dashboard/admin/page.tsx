@@ -10,6 +10,13 @@ export default function AdminPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
 
+  // Redirect to Analysis Dashboard by default
+  useEffect(() => {
+    if (isAuthenticated && user && user.role === 'dba') {
+      router.push('/dashboard/admin/dashboard')
+    }
+  }, [router, isAuthenticated, user])
+
   // Wait for auth to load
   if (!isAuthenticated || !user) {
     return (
@@ -35,11 +42,6 @@ export default function AdminPage() {
       </DashboardLayout>
     )
   }
-
-  // Redirect to Analysis Dashboard by default
-  useEffect(() => {
-    router.push('/dashboard/admin/dashboard')
-  }, [router])
 
   return (
     <DashboardLayout>

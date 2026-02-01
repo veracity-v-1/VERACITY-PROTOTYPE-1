@@ -4,6 +4,11 @@ const nextConfig = {
   images: {
     domains: ['github.com', 'avatars.githubusercontent.com'],
   },
+  // Suppress error overlay in development
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
 }
 
 module.exports = nextConfig

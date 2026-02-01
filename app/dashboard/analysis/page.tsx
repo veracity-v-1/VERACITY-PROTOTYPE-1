@@ -6,9 +6,10 @@ import ChatbotPanel from '@/components/ChatbotPanel'
 import { FaUpload, FaGithub, FaCode, FaExclamationTriangle, FaCheckCircle, FaFile, FaComments } from 'react-icons/fa'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import type { Prediction } from '@/types/prediction'
 
 // Mock prediction data
-const mockPrediction = {
+const mockPrediction: Prediction = {
   id: 1,
   defect_probability: 0.75,
   risk_level: 'high',
@@ -51,7 +52,7 @@ const mockPrediction = {
 export default function AnalysisPage() {
   const [code, setCode] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
-  const [prediction, setPrediction] = useState<any>(null)
+  const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [activeTab, setActiveTab] = useState<'input' | 'results'>('input')
   const [analysisProgress, setAnalysisProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState('')
@@ -60,7 +61,7 @@ export default function AnalysisPage() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file && file.type === 'text/x-python' || file.name.endsWith('.py')) {
+    if (file && (file.type === 'text/x-python' || file.name.endsWith('.py'))) {
       const reader = new FileReader()
       reader.onload = (event) => {
         const content = event.target?.result as string
@@ -305,7 +306,7 @@ export default function AnalysisPage() {
               <div className="bg-dark-800/80 backdrop-blur-sm rounded-xl p-6 border border-dark-700/50">
                 <h2 className="text-lg font-semibold text-white mb-4">Top Risk-Driving Features (SHAP)</h2>
                 <div className="space-y-3">
-                  {prediction.top_risk_features.map((feature: any, index: number) => (
+                  {prediction.top_risk_features.map((feature, index: number) => (
                     <div
                       key={index}
                       className="bg-dark-700 rounded-lg p-4 flex items-center justify-between"

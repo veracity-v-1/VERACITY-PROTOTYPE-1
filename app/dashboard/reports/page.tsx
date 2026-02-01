@@ -4,9 +4,11 @@ import { useState } from 'react'
 import DashboardLayout from '@/components/Layout/DashboardLayout'
 import { FaFileAlt, FaDownload, FaFilePdf, FaFileCode, FaFile } from 'react-icons/fa'
 import { useAuth } from '@/contexts/AuthContext'
+import type { Report } from '@/types/prediction'
+import jsPDF from 'jspdf'
 
 // Mock reports data
-const mockReports = [
+const mockReports: Report[] = [
   {
     id: 1,
     title: 'Daily Risk Report - January 15',
@@ -42,9 +44,11 @@ export default function ReportsPage() {
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault()
-    const newReport = {
+    const newReport: Report = {
       id: reports.length + 1,
-      ...formData,
+      title: formData.title,
+      report_type: formData.report_type as 'daily' | 'monthly' | 'custom',
+      report_format: formData.report_format as 'json' | 'xml' | 'pdf',
       created_at: new Date().toISOString(),
     }
     setReports([newReport, ...reports])
@@ -52,8 +56,200 @@ export default function ReportsPage() {
     setFormData({ title: '', report_type: 'daily', report_format: 'json' })
   }
 
-  const handleDownload = (report: any) => {
-    // Mock download - in real app, this would download the actual file
+  // Generate mock report data based on report type
+  const generateReportData = (report: Report) => {
+    const baseData = {
+      report_id: report.id,
+      title: report.title,
+      report_type: report.report_type,
+      generated_at: report.created_at,
+      summary: {
+        total_predictions: 1234,
+        high_risk: 89,
+        critical_issues: 23,
+        resolved: 456,
+      },
+      metrics: {
+        defect_probability_avg: 0.65,
+        risk_distribution: {
+          low: 45,
+          medium: 30,
+          high: 15,
+          critical: 10,
+        },
+      },
+      top_risk_features: [
+        { feature_name: 'v(g)', avg_value: 12, impact: 'high' },
+        { feature_name: 'loc', avg_value: 450, impact: 'high' },
+        { feature_name: 'branchCount', avg_value: 25, impact: 'medium' },
+      ],
+    }
+
+    return baseData
+  }
+
+  const handleDownload = (report: Report) => {
+    const reportData = generateReportData(report)
+    const fileName = `${report.title.replace(/\s+/g, '_')}_${new Date(report.created_at).toISOString().split('T')[0]}`
+
+    switch (report.report_format) {
+      case 'json':
+        downloadJSON(reportData, fileName)
+        break
+      case 'xml':
+        downloadXML(reportData, fileName)
+        break
+      case 'pdf':
+        downloadPDF(reportData, report, fileName)
+        break
+    }
+  }
+
+  const downloadJSON = (data: any, fileName: string) => {
+    const jsonString = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${fileName}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadXML = (data: any, fileName: string) => {
+    const xmlString = generateXML(data)
+    const blob = new Blob([xmlString], { type: 'application/xml' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${fileName}.xml`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const generateXML = (data: any): string => {
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<report>\n'
+    
+    xml += `  <report_id>${data.report_id}</report_id>\n`
+    xml += `  <title>${escapeXML(data.title)}</title>\n`
+    xml += `  <report_type>${data.report_type}</report_type>\n`
+    xml += `  <generated_at>${data.generated_at}</generated_at>\n`
+    
+    xml += '  <summary>\n'
+    xml += `    <total_predictions>${data.summary.total_predictions}</total_predictions>\n`
+    xml += `    <high_risk>${data.summary.high_risk}</high_risk>\n`
+    xml += `    <critical_issues>${data.summary.critical_issues}</critical_issues>\n`
+    xml += `    <resolved>${data.summary.resolved}</resolved>\n`
+    xml += '  </summary>\n'
+    
+    xml += '  <metrics>\n'
+    xml += `    <defect_probability_avg>${data.metrics.defect_probability_avg}</defect_probability_avg>\n`
+    xml += '    <risk_distribution>\n'
+    xml += `      <low>${data.metrics.risk_distribution.low}</low>\n`
+    xml += `      <medium>${data.metrics.risk_distribution.medium}</medium>\n`
+    xml += `      <high>${data.metrics.risk_distribution.high}</high>\n`
+    xml += `      <critical>${data.metrics.risk_distribution.critical}</critical>\n`
+    xml += '    </risk_distribution>\n'
+    xml += '  </metrics>\n'
+    
+    xml += '  <top_risk_features>\n'
+    data.top_risk_features.forEach((feature: any) => {
+      xml += '    <feature>\n'
+      xml += `      <name>${escapeXML(feature.feature_name)}</name>\n`
+      xml += `      <avg_value>${feature.avg_value}</avg_value>\n`
+      xml += `      <impact>${feature.impact}</impact>\n`
+      xml += '    </feature>\n'
+    })
+    xml += '  </top_risk_features>\n'
+    
+    xml += '</report>'
+    return xml
+  }
+
+  const escapeXML = (str: string): string => {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;')
+  }
+
+  const downloadPDF = (data: any, report: Report, fileName: string) => {
+    const doc = new jsPDF()
+    
+    // Set font
+    doc.setFontSize(18)
+    doc.text(report.title, 14, 20)
+    
+    doc.setFontSize(12)
+    let yPos = 35
+    
+    // Report Info
+    doc.setFontSize(10)
+    doc.text(`Report ID: ${report.id}`, 14, yPos)
+    yPos += 7
+    doc.text(`Type: ${report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1)}`, 14, yPos)
+    yPos += 7
+    doc.text(`Generated: ${formatDate(report.created_at)}`, 14, yPos)
+    yPos += 12
+    
+    // Summary Section
+    doc.setFontSize(14)
+    doc.text('Summary', 14, yPos)
+    yPos += 8
+    doc.setFontSize(10)
+    doc.text(`Total Predictions: ${data.summary.total_predictions}`, 14, yPos)
+    yPos += 7
+    doc.text(`High Risk: ${data.summary.high_risk}`, 14, yPos)
+    yPos += 7
+    doc.text(`Critical Issues: ${data.summary.critical_issues}`, 14, yPos)
+    yPos += 7
+    doc.text(`Resolved: ${data.summary.resolved}`, 14, yPos)
+    yPos += 12
+    
+    // Metrics Section
+    doc.setFontSize(14)
+    doc.text('Metrics', 14, yPos)
+    yPos += 8
+    doc.setFontSize(10)
+    doc.text(`Average Defect Probability: ${(data.metrics.defect_probability_avg * 100).toFixed(1)}%`, 14, yPos)
+    yPos += 12
+    
+    // Risk Distribution
+    doc.setFontSize(12)
+    doc.text('Risk Distribution', 14, yPos)
+    yPos += 8
+    doc.setFontSize(10)
+    doc.text(`Low: ${data.metrics.risk_distribution.low}%`, 14, yPos)
+    yPos += 7
+    doc.text(`Medium: ${data.metrics.risk_distribution.medium}%`, 14, yPos)
+    yPos += 7
+    doc.text(`High: ${data.metrics.risk_distribution.high}%`, 14, yPos)
+    yPos += 7
+    doc.text(`Critical: ${data.metrics.risk_distribution.critical}%`, 14, yPos)
+    yPos += 12
+    
+    // Top Risk Features
+    doc.setFontSize(14)
+    doc.text('Top Risk Features', 14, yPos)
+    yPos += 8
+    doc.setFontSize(10)
+    data.top_risk_features.forEach((feature: any) => {
+      if (yPos > 270) {
+        doc.addPage()
+        yPos = 20
+      }
+      doc.text(`${feature.feature_name}: ${feature.avg_value} (${feature.impact} impact)`, 14, yPos)
+      yPos += 7
+    })
+    
+    // Save the PDF
+    doc.save(`${fileName}.pdf`)
   }
 
   const getFormatIcon = (format: string) => {

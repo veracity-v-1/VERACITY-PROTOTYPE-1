@@ -48,13 +48,26 @@ export default function ProjectsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const newProject = {
-      id: projects.length + 1,
-      ...formData,
-      repository_type: formData.repository_url ? 'github' : null,
-      files_analyzed: 0,
-      last_analyzed: new Date().toISOString().split('T')[0],
-    }
+    const repository_url = formData.repository_url.trim() || null
+    const newProject = repository_url
+      ? {
+          id: projects.length + 1,
+          name: formData.name,
+          description: formData.description,
+          repository_url: repository_url,
+          repository_type: 'github' as const,
+          files_analyzed: 0,
+          last_analyzed: new Date().toISOString().split('T')[0],
+        }
+      : {
+          id: projects.length + 1,
+          name: formData.name,
+          description: formData.description,
+          repository_url: null,
+          repository_type: null,
+          files_analyzed: 0,
+          last_analyzed: new Date().toISOString().split('T')[0],
+        }
     setProjects([...projects, newProject])
     setFormData({ name: '', description: '', repository_url: '' })
     setShowModal(false)

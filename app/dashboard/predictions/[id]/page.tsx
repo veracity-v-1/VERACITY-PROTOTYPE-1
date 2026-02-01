@@ -7,6 +7,7 @@ import ChatbotPanel from '@/components/ChatbotPanel'
 import { FaArrowLeft, FaComments } from 'react-icons/fa'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import type { Prediction } from '@/types/prediction'
 
 // Mock prediction data - in real app, this would come from API
 const mockPredictionData = {
@@ -173,7 +174,7 @@ export default function PredictionDetailPage() {
         <div className="bg-dark-800/80 backdrop-blur-sm rounded-xl p-6 border border-dark-700/50">
           <h2 className="text-xl font-semibold text-white mb-4">Top Risk-Driving Features (SHAP)</h2>
           <div className="space-y-3">
-            {prediction.top_risk_features.map((feature: any, index: number) => (
+            {prediction.top_risk_features.map((feature, index: number) => (
               <div
                 key={index}
                 className="bg-dark-700/50 rounded-lg p-4 flex items-center justify-between border border-dark-600/50"
