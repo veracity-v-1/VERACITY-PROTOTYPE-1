@@ -8,7 +8,7 @@
 ## 📁 Project Structure
 
 ```
-backend-mlF/
+backend-ml/
 ├── backend/                  # Node.js REST API
 │   ├── src/
 │   │   ├── db/               # PostgreSQL connection (Neon)
@@ -38,7 +38,7 @@ backend-mlF/
 │   ├── main.py                # FastAPI entry point
 │   └── requirements.txt
 │
-└── database/                 # SQL scripts
+
 ```
 
 ---
