@@ -1,0 +1,150 @@
+{
+  "v(g)": {
+    "display_name": "Cyclomatic Complexity",
+    "threshold": 10,
+    "advice": "Your code has too many decision branches. Break large functions into smaller ones — each doing exactly one thing. Target complexity under 10 per function.",
+    "steps": ["Run: radon cc -s yourfile.py", "Extract helper functions", "Replace if-elif chains with dictionaries"],
+    "priority": 1
+  },
+  "ev(g)": {
+    "display_name": "Essential Complexity",
+    "threshold": 8,
+    "advice": "High essential complexity means unstructured control flow. Refactor nested conditionals into early returns.",
+    "steps": ["Use early returns", "Replace nested ifs with guard clauses", "Extract complex conditions"],
+    "priority": 2
+  },
+  "v": {
+    "display_name": "Halstead Volume",
+    "threshold": 500,
+    "advice": "High volume means dense logic. Use Python built-ins, list comprehensions, and simplify expressions.",
+    "steps": ["Use map/filter/comprehensions", "Use sum, max, any, all", "Break compound expressions"],
+    "priority": 2
+  },
+  "e": {
+    "display_name": "Halstead Effort",
+    "threshold": 10000,
+    "advice": "High mental effort required. Add clear docstrings, rename variables, and reduce nesting.",
+    "steps": ["Add docstrings", "Rename variables descriptively", "Max 3 nesting levels"],
+    "priority": 2
+  },
+  "b": {
+    "display_name": "Halstead Bug Estimate",
+    "threshold": 2,
+    "advice": "Halstead predicts likely bugs. Write unit tests and reduce complexity.",
+    "steps": ["Write pytest tests", "Focus on complex functions", "Use type hints"],
+    "priority": 1
+  },
+  "d": {
+    "display_name": "Halstead Difficulty",
+    "threshold": 30,
+    "advice": "Code is hard to write correctly. Simplify patterns and reduce unique operator variety.",
+    "steps": ["Consolidate patterns", "Prefer standard library", "Have teammate review"],
+    "priority": 3
+  },
+  "loc": {
+    "display_name": "Lines of Code",
+    "threshold": 200,
+    "advice": "Large files are harder to maintain. Split into modules by responsibility.",
+    "steps": ["Group functions into files", "Move utilities to utils.py", "One concept per module"],
+    "priority": 3
+  },
+  "branchcount": {
+    "display_name": "Branch Count",
+    "threshold": 15,
+    "advice": "Too many branches make code hard to test. Consolidate or use lookup structures.",
+    "steps": ["Replace if-elif with dicts", "Use polymorphism", "Split functions"],
+    "priority": 2
+  },
+  "v_density": {
+    "display_name": "Complexity Density",
+    "threshold": 0.5,
+    "advice": "High complexity relative to size. Spread complexity across more lines.",
+    "steps": ["Break complex expressions", "Use intermediate variables", "Add early returns"],
+    "priority": 2
+  },
+  "ev_ratio": {
+    "display_name": "Essential Complexity Ratio",
+    "threshold": 0.8,
+    "advice": "High ratio means unstructured complexity. Restructure control flow.",
+    "steps": ["Replace nested conditionals", "Use structured loops", "Extract state machines"],
+    "priority": 3
+  }
+  ,
+  "locode": {
+    "display_name": "Logical Lines of Code",
+    "threshold": 150,
+    "advice": "The code has many logical lines. Consider breaking into smaller functions.",
+    "steps": ["Extract helper functions", "Remove duplicate logic", "Use list comprehensions"],
+    "priority": 3
+  },
+  "l": {
+    "display_name": "Halstead Program Length",
+    "threshold": 50,
+    "advice": "The program length is high. Simplify expressions and reduce nesting.",
+    "steps": ["Break long expressions", "Use intermediate variables", "Add early returns"],
+    "priority": 2
+  },
+  "response_complexity": {
+    "display_name": "Response Complexity",
+    "threshold": 1.0,
+    "advice": "Response complexity metric is elevated. Review function call patterns.",
+    "steps": ["Review function calls", "Simplify call chains", "Extract middleware"],
+    "priority": 2
+  },
+  "i": {
+    "display_name": "Halstead Intelligence",
+    "threshold": 50,
+    "advice": "Code intelligence metric indicates dense logic. Add documentation.",
+    "steps": ["Add docstrings", "Use descriptive names", "Add inline comments"],
+    "priority": 3
+  },
+  "n": {
+    "display_name": "Vocabulary Size",
+    "threshold": 30,
+    "advice": "Large vocabulary size suggests many unique operators. Consolidate patterns.",
+    "steps": ["Reuse common patterns", "Create utility functions", "Standardize naming"],
+    "priority": 3
+  },
+  "cyclomatic_loc": {
+    "display_name": "Complexity per Line",
+    "threshold": 500,
+    "advice": "High complexity relative to size. Spread complexity across more lines.",
+    "steps": ["Break complex lines", "Add whitespace", "Use descriptive intermediates"],
+    "priority": 2
+  },
+  "halstead_length": {
+    "display_name": "Total Operators + Operands",
+    "threshold": 100,
+    "advice": "High Halstead length indicates verbose code. Use built-ins and simplify.",
+    "steps": ["Use Python built-ins", "Remove redundant operations", "Use comprehensions"],
+    "priority": 2
+  },
+  "halstead_volume_density": {
+    "display_name": "Information Density",
+    "threshold": 5,
+    "advice": "Information is packed too densely. Spread it out for readability.",
+    "steps": ["Add blank lines", "Add section comments", "Break compound statements"],
+    "priority": 3
+  },
+  "comment_quality": {
+    "display_name": "Comment Coverage",
+    "threshold": 0.1,
+    "advice": "Low comment coverage. Add explanations for complex sections.",
+    "steps": ["Add module docstring", "Comment tricky logic", "Explain WHY not WHAT"],
+    "priority": 3
+  },
+  "uniq_op_density": {
+    "display_name": "Unique Operator Density",
+    "threshold": 0.5,
+    "advice": "Many unique operators per line. Simplify and standardize.",
+    "steps": ["Reuse common operators", "Extract complex expressions", "Use standard library"],
+    "priority": 3
+  },
+  "branch_density": {
+    "display_name": "Branches per Line",
+    "threshold": 0.2,
+    "advice": "Many branch points relative to size. Consolidate conditionals.",
+    "steps": ["Replace nested ifs", "Use early returns", "Extract decision logic"],
+    "priority": 2
+  }
+}

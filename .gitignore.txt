@@ -1,0 +1,19 @@
+# Python / ML Service
+**/venv/
+**/__pycache__/
+*.pkl
+ml_service/models/model.pkl
+ml_service/data/
+
+# Node.js (Frontend & Backend)
+**/node_modules/
+.npm
+**.log
+
+# Credentials
+.env
+database/credentials.json
+
+# System
+.DS_Store
+Thumbs.db

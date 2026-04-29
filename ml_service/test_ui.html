@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project Veracity - Chatbot Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background: #f5f5f5; }
+        h1 { color: #333; }
+        .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        textarea { width: 100%; height: 200px; font-family: monospace; font-size: 12px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .result { background: #f8f9fa; padding: 15px; border-radius: 4px; margin-top: 10px; white-space: pre-wrap; font-size: 12px; max-height: 400px; overflow-y: auto; }
+        .chat-message { padding: 10px; margin: 5px 0; border-radius: 8px; }
+        .bot { background: #e3f2fd; margin-right: 50px; }
+        .user { background: #c8e6c9; margin-left: 50px; text-align: right; }
+        .quick-replies { margin: 10px 0; }
+        .quick-btn { background: #6c757d; padding: 5px 15px; font-size: 12px; }
+        .risk-high { color: #d32f2f; font-weight: bold; }
+        .risk-low { color: #388e3c; font-weight: bold; }
+        .emoji { font-size: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Project Veracity - Visual Test</h1>
+    
+    <!-- ANALYZE SECTION -->
+    <div class="section">
+        <h2>Step 1: Analyze Code</h2>
+        <textarea id="codeInput">def hello(name):
+    return f"Hello, {name}!"</textarea>
+        <br>
+        <button onclick="analyzeCode()">🔍 Analyze</button>
+        <button onclick="loadSimple()">Load Simple</button>
+        <button onclick="loadMedium()">Load Medium</button>
+        <button onclick="loadComplex()">Load Complex</button>
+        <div id="analyzeResult" class="result">Result will appear here...</div>
+    </div>
+
+    <!-- CHAT SECTION -->
+    <div class="section">
+        <h2>Step 2: Chat with Veracity</h2>
+        <div id="chatHistory" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px;"></div>
+        <div class="quick-replies" id="quickReplies"></div>
+        <input type="text" id="chatInput" placeholder="Type message or click buttons above..." style="width: 70%; padding: 8px;">
+        <button onclick="sendMessage()">Send</button>
+        <button onclick="resetChat()">🔄 Reset</button>
+    </div>
+
+    <!-- REPORT SECTION -->
+    <div class="section">
+        <h2>Step 3: Generate Report</h2>
+        <button onclick="generateReport('json')">📄 JSON Report</button>
+        <button onclick="generateReport('xml')">📄 XML Report</button>
+        <div id="reportResult" class="result">Report will appear here...</div>
+    </div>
+
+    <script>
+        const API = "http://localhost:8080";
+        let sessionId = "visual_test_" + Date.now();
+        let lastAnalysis = null;
+
+        async function analyzeCode() {
+            const code = document.getElementById('codeInput').value;
+            document.getElementById('analyzeResult').textContent = "Analyzing...";
+            
+            try {
+                const r = await fetch(`${API}/analyze`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({code: code, filename: "test.py"})
+                });
+                const data = await r.json();
+                lastAnalysis = data;
+                
+                const riskClass = data.risk_level === 'High' ? 'risk-high' : 'risk-low';
+                document.getElementById('analyzeResult').innerHTML = 
+                    `<span class="${riskClass} emoji">${data.risk_level === 'High' ? '🔴' : '🟢'} RISK: ${data.risk_level}</span>\n` +
+                    `Probability: ${data.bug_probability}\n` +
+                    `Threshold: ${data.threshold_used}\n` +
+                    `Features: ${Object.keys(data.features).length}\n\n` +
+                    `Top SHAP Features:\n` +
+                    data.shap_explanation.top_features.slice(0,3).map(f => 
+                        `  ${f.direction === 'increases_risk' ? '🔺' : '🔻'} ${f.feature}: ${f.shap_value.toFixed(4)}`
+                    ).join('\n');
+                
+                // Auto-start chat
+                startChat(data);
+            } catch (e) {
+                document.getElementById('analyzeResult').textContent = "Error: " + e.message;
+            }
+        }
+
+        async function startChat(analysis) {
+            const r = await fetch(`${API}/chat/start`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    session_id: sessionId,
+                    risk_level: analysis.risk_level,
+                    top_features: analysis.shap_explanation.top_features,
+                    user_name: "User"
+                })
+            });
+            const data = await r.json();
+            displayChatResponse(data.conversation);
+        }
+
+        function displayChatResponse(conv) {
+            const history = document.getElementById('chatHistory');
+            const replies = document.getElementById('quickReplies');
+            
+            conv.messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'chat-message bot';
+                
+                if (msg.type === 'greeting') {
+                    div.innerHTML = `<span class="emoji">👋</span> ${msg.text}<br><small>${msg.friendly_summary}</small>`;
+                } else if (msg.type === 'menu') {
+                    div.innerHTML = `<span class="emoji">${msg.emoji}</span> <b>${msg.text}</b><br><small>${msg.friendly_summary}</small>`;
+                } else if (msg.type === 'advice') {
+                    div.innerHTML = `<span class="emoji">${msg.emoji}</span> <b>${msg.display_name}</b><br>` +
+                        `Score: ${msg.your_score} / Limit: ${msg.safe_limit} ` +
+                        `<span style="color:${msg.exceeded ? 'red' : 'green'}">${msg.exceeded ? '⚠️ EXCEEDED' : '✅ OK'}</span><br>` +
+                        `<small>${msg.simple_explanation}</small>`;
+                } else if (msg.type === 'fix_guide') {
+                    div.innerHTML = `<span class="emoji">${msg.emoji}</span> <b>${msg.fix_title}</b><br>` +
+                        `<small>${msg.fix_explanation}</small><br>` +
+                        `<ol>${msg.steps.map(s => `<li>${s.text}</li>`).join('')}</ol>` +
+                        `<small>⏱️ Estimated: ${msg.effort_estimate}</small>`;
+                } else if (msg.type === 'closing') {
+                    div.innerHTML = `<span class="emoji">${msg.emoji}</span> <b>${msg.text}</b><br>` +
+                        `<small>${msg.friendly_summary}</small><br>` +
+                        `<small>Feedback: ${msg.feedback_prompt}</small>`;
+                } else {
+                    div.innerHTML = `<span class="emoji">${msg.emoji || '💬'}</span> ${msg.text || JSON.stringify(msg).slice(0,200)}`;
+                }
+                history.appendChild(div);
+            });
+            
+            // Quick reply buttons
+            replies.innerHTML = '';
+            conv.quick_replies.forEach(qr => {
+                const btn = document.createElement('button');
+                btn.className = 'quick-btn';
+                btn.textContent = qr;
+                btn.onclick = () => {
+                    document.getElementById('chatInput').value = qr;
+                    sendMessage();
+                };
+                replies.appendChild(btn);
+            });
+            
+            history.scrollTop = history.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            // Show user message
+            const history = document.getElementById('chatHistory');
+            const div = document.createElement('div');
+            div.className = 'chat-message user';
+            div.textContent = text;
+            history.appendChild(div);
+            input.value = '';
+            
+            try {
+                const r = await fetch(`${API}/chat/message`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({session_id: sessionId, message: text})
+                });
+                const data = await r.json();
+                displayChatResponse(data.conversation);
+            } catch (e) {
+                alert("Error: " + e.message);
+            }
+        }
+
+        async function resetChat() {
+            await fetch(`${API}/chat/reset?session_id=${sessionId}`);
+            document.getElementById('chatHistory').innerHTML = '';
+            document.getElementById('quickReplies').innerHTML = '';
+            sessionId = "visual_test_" + Date.now();
+            if (lastAnalysis) startChat(lastAnalysis);
+        }
+
+        async function generateReport(format) {
+            if (!lastAnalysis) {
+                alert("Analyze code first!");
+                return;
+            }
+            
+            document.getElementById('reportResult').textContent = "Generating...";
+            
+            const payload = {
+                filename: lastAnalysis.filename,
+                risk_level: lastAnalysis.risk_level,
+                bug_probability: lastAnalysis.bug_probability,
+                threshold_used: lastAnalysis.threshold_used,
+                features: lastAnalysis.features,
+                shap_explanation: lastAnalysis.shap_explanation,
+                mitigation_advice: lastAnalysis.mitigation_advice,
+                user_notes: "Generated from visual test UI"
+            };
+            
+            try {
+                const r = await fetch(`${API}/report/${format}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await r.json();
+                
+                if (format === 'json') {
+                    document.getElementById('reportResult').textContent = 
+                        `Status: ${data.status}\nFilename: ${data.filename}\n` +
+                        `Health: ${data.report.metrics_summary.overall_health}\n` +
+                        `Exceeded: ${data.report.metrics_summary.thresholds_exceeded}\n` +
+                        `Effort: ${data.report.mitigation_plan.estimated_total_effort}\n\n` +
+                        JSON.stringify(data.report, null, 2).slice(0, 2000);
+                } else {
+                    document.getElementById('reportResult').textContent = 
+                        `Status: ${data.status}\nFilename: ${data.filename}\n\n` +
+                        data.xml_content.slice(0, 2000);
+                }
+            } catch (e) {
+                document.getElementById('reportResult').textContent = "Error: " + e.message;
+            }
+        }
+
+        function loadSimple() {
+            document.getElementById('codeInput').value = 'def hello(name):\n    return f"Hello, {name}!"';
+        }
+        function loadMedium() {
+            document.getElementById('codeInput').value = 'def process(data, config):\n    results = []\n    if data and len(data) > 0:\n        for idx, item in enumerate(data):\n            if item.get(\'active\') and item.get(\'permissions\'):\n                if item.get(\'type\') == \'premium\':\n                    if config.get(\'premium_enabled\'):\n                        if item.get(\'credits\') > 100:\n                            try:\n                                processed = db.query("INSERT INTO logs VALUES (?,?)", (item[\'id\'], item[\'amount\']))\n                                results.append(processed)\n                            except Exception as e:\n                                print(f"Error: {e}")\n                        else:\n                            print("Low credits")\n                    else:\n                        continue\n                elif item.get(\'type\') == \'basic\':\n                    results.append({\'id\': item[\'id\'], \'status\': \'basic\'})\n                else:\n                    print(f"Unknown: {item.get(\'type\')}")\n                    results.append({\'id\': item[\'id\'], \'reason\': \'unknown\'})\n            else:\n                if not item.get(\'active\'):\n                    results.append({\'id\': item[\'id\'], \'status\': \'inactive\'})\n    return {\'results\': results}';
+        }
+        function loadComplex() {
+            document.getElementById('codeInput').value = 'import os, sys, re, json, math, random, datetime, time, hashlib\n\ndef process_transaction(user_id, amount, currency, config, db, cache, auth, logger, metrics, notifier):\n    result = None\n    status = "pending"\n    retry_count = 0\n    max_retries = 5\n    processed = False\n    audit_log = []\n    \n    if user_id and amount and currency:\n        if config and config.get("enabled"):\n            if db and db.is_connected():\n                if auth and auth.verify(user_id):\n                    if amount > 0:\n                        if currency in config.get("currencies", []):\n                            if cache and cache.available():\n                                try:\n                                    cached_rate = cache.get(f"rate:{currency}")\n                                    if cached_rate:\n                                        rate = cached_rate\n                                    else:\n                                        rate = db.query("SELECT rate FROM exchange_rates WHERE currency = ?", (currency,))\n                                        cache.set(f"rate:{currency}", rate, ttl=300)\n                                    \n                                    converted = amount * rate\n                                    fee = converted * config.get("fee_rate", 0.02)\n                                    total = converted + fee\n                                    \n                                    if total < config.get("max_amount", 10000):\n                                        if auth.check_limit(user_id, total):\n                                            transaction_id = hashlib.md5(f"{user_id}:{amount}:{time.time()}".encode()).hexdigest()\n                                            \n                                            db.execute("BEGIN TRANSACTION")\n                                            try:\n                                                db.execute("INSERT INTO transactions (id, user_id, amount, currency, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",\n                                                    (transaction_id, user_id, amount, currency, status, datetime.datetime.now()))\n                                                \n                                                balance = db.query("SELECT balance FROM accounts WHERE user_id = ?", (user_id,))\n                                                new_balance = balance - total\n                                                \n                                                if new_balance >= 0:\n                                                    db.execute("UPDATE accounts SET balance = ? WHERE user_id = ?", (new_balance, user_id))\n                                                    \n                                                    if notifier:\n                                                        notifier.send(user_id, f"Transaction {transaction_id} processed: {amount} {currency}")\n                                                    \n                                                    metrics.record("transaction_processed", amount)\n                                                    audit_log.append({"action": "debit", "amount": total, "balance": new_balance})\n                                                    \n                                                    db.execute("COMMIT")\n                                                    result = {"id": transaction_id, "status": "completed", "amount": amount, "fee": fee}\n                                                    processed = True\n                                                else:\n                                                    db.execute("ROLLBACK")\n                                                    status = "insufficient_funds"\n                                                    logger.error(f"Insufficient funds for user {user_id}: needed {total}, had {balance}")\n                                                    audit_log.append({"action": "failed", "reason": "insufficient_funds"})\n                                            except Exception as e:\n                                                db.execute("ROLLBACK")\n                                                logger.error(f"Transaction failed for {user_id}: {str(e)}")\n                                                retry_count += 1\n                                                if retry_count < max_retries:\n                                                    time.sleep(0.1 * retry_count)\n                                                else:\n                                                    status = "failed"\n                                                    result = {"error": str(e), "retries": retry_count}\n                                                    notifier.send(user_id, "Transaction failed after retries")\n                                        else:\n                                            status = "limit_exceeded"\n                                            logger.warning(f"Limit exceeded for user {user_id}: {total}")\n                                    else:\n                                        status = "amount_too_high"\n                                        logger.warning(f"Amount too high: {total}")\n                                except Exception as e:\n                                    logger.error(f"Cache error: {str(e)}")\n                                    status = "cache_error"\n                            else:\n                                status = "cache_unavailable"\n                                logger.warning("Cache service unavailable")\n                        else:\n                            status = "invalid_currency"\n                            logger.warning(f"Invalid currency: {currency}")\n                    else:\n                        status = "invalid_amount"\n                        logger.warning(f"Invalid amount: {amount}")\n                else:\n                    status = "auth_failed"\n                    logger.warning(f"Auth failed for user: {user_id}")\n            else:\n                status = "db_unavailable"\n                logger.error("Database connection unavailable")\n        else:\n            status = "service_disabled"\n            logger.info("Transaction service disabled")\n    else:\n        status = "missing_parameters"\n        logger.warning("Missing required parameters")\n    \n    if not processed:\n        result = {"status": status, "retry_count": retry_count, "audit_log": audit_log}\n    \n    return result';
+        }
+
+        // Enter key sends message
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
