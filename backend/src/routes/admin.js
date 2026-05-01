@@ -126,7 +126,7 @@ router.get('/logs/:id', ...DBA_ONLY, async (req, res) => {
       SELECT a.*, u.email AS user_name, u.role
       FROM audit_logs a
       LEFT JOIN users u ON a.user_id = u.user_id
-      WHERE a.log_id = $1`, [req.params.id]);
+      WHERE a.audit_log_id = $1`, [req.params.id]);
 
     if (result.rows.length === 0)
       return res.status(404).json({ error: 'Log not found.' });
@@ -219,12 +219,17 @@ router.get('/dashboard', ...DBA_ONLY, async (req, res) => {
       pool.query('SELECT COUNT(*) AS total FROM users'),
 
       pool.query(`
-        SELECT COUNT(*) AS total FROM projects
-        WHERE is_archived = false`)
+       SELECT 
+       COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE is_archived = false) AS active,
+       COUNT(*) FILTER (WHERE is_archived = true) AS archived
+       FROM projects`)
+
     ]);
 
-    const totalScans  = parseInt(scans.rows[0].total);
-    const failedCount = parseInt(failedLogs.rows[0].count);
+   const totalScans  = parseInt(scans.rows[0].total);
+   const failedCount = parseInt(failedLogs.rows[0].count);
+   const successCount = Math.max(0, totalScans - failedCount);
 
     // Map colors for frontend pie chart
     const colorMap = {
@@ -236,10 +241,12 @@ router.get('/dashboard', ...DBA_ONLY, async (req, res) => {
 
     res.json({
       totalScans,
-      successfulScans:  totalScans - failedCount,
-      failedScans:      failedCount,
+      successfulScans: successCount,
+      failedScans:     failedCount,
       totalUsers:       parseInt(users.rows[0].total),
       totalProjects:    parseInt(projects.rows[0].total),
+      activeProjects:   parseInt(projects.rows[0].active),
+      archivedProjects: parseInt(projects.rows[0].archived),
       avgRisk:          totalScans > 0
         ? parseFloat((riskDist.rows.reduce((sum, r) => {
             const w = r.risk_level === 'HIGH' ? 0.65
@@ -271,7 +278,7 @@ router.get('/logs', ...DBA_ONLY, async (req, res) => {
     const [data, count] = await Promise.all([
       pool.query(`
         SELECT
-          a.log_id        AS id,
+         a.audit_log_id  AS id,
           a.user_id,
           a.action,
           a.resource_type,
