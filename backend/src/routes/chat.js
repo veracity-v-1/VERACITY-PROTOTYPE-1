@@ -14,10 +14,17 @@ router.post('/start', verifyToken, async (req, res) => {
   if (!session_id || !risk_level || !top_features)
     return res.status(400).json({ error: 'session_id, risk_level, top_features required.' });
 
+  // ✅ Fix: Ensure top_features is array of objects
+  const formattedFeatures = top_features.map(f => 
+    typeof f === 'string' 
+      ? { feature: f, shap_value: 0, metric_value: 0 }
+      : f
+  );
+
   try {
     const mlRes = await axios.post(
       `${process.env.ML_WORKER_URL}/chat/start`,
-      { session_id, risk_level, top_features, user_name },
+      { session_id, risk_level, top_features: formattedFeatures, user_name },
       { timeout: 30000 }
     );
     res.json(mlRes.data);
