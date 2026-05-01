@@ -542,7 +542,7 @@ router.get('/:id/report', verifyToken, async (req, res) => {
 
       // All predictions for this project (not just latest)
       const predictions = await pool.query(
-        'SELECT prediction_id, risk_level, confidence_score, created_at FROM predictions WHERE project_id = $1 ORDER BY created_at DESC',
+        'SELECT prediction_id, risk_level, risk_score, created_at FROM predictions WHERE project_id = $1 ORDER BY created_at DESC',
         [id]
       );
 
@@ -565,7 +565,7 @@ router.get('/:id/report', verifyToken, async (req, res) => {
       const riskTrend = predictions.rows.map(p => ({
         prediction_id: p.prediction_id,
         risk_level: p.risk_level,
-        confidence_score: p.confidence_score,
+        risk_score: p.risk_score,
         analysed_at: p.created_at
       }));
 
