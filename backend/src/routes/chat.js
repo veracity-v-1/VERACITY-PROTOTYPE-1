@@ -42,6 +42,11 @@ router.post('/message', verifyToken, async (req, res) => {
   if (!session_id || !message)
     return res.status(400).json({ error: 'session_id and message required.' });
 
+  const safeMessage = String(message).trim();
+  if (!safeMessage)
+    return res.status(400).json({ error: 'message cannot be empty.' });
+
+
   try {
     const mlRes = await axios.post(
       `${process.env.ML_WORKER_URL}/chat/message`,
