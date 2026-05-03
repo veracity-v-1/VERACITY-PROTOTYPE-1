@@ -10,8 +10,7 @@ require('dotenv').config();
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL     = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL   = 'llama3-70b-8192';
-
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 // ── In-memory session store ───────────────────
 // Stores conversation history per session
 const sessions = new Map();
